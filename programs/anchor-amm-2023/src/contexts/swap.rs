@@ -1,10 +1,10 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount, Transfer, transfer};
-use anchor_spl::associated_token::AssociatedToken;
-use constant_product_curve::{ConstantProduct, LiquidityPair};
-use crate::{accounts, assert_not_locked, assert_not_expired, assert_non_zero};
-use crate::state::config::Config;
 use crate::errors::AmmError;
+use crate::state::config::Config;
+use crate::{assert_non_zero, assert_not_expired, assert_not_locked};
+use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
+use constant_product_curve::{ConstantProduct, LiquidityPair};
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -53,17 +53,11 @@ pub struct Swap<'info> {
     pub config: Account<'info, Config>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> Swap<'info> {
-    pub fn swap(
-        &mut self,
-        is_x: bool,
-        amount: u64,
-        min: u64,
-        expiration: i64
-    ) -> Result<()> {
+    pub fn swap(&mut self, is_x: bool, amount: u64, min: u64, expiration: i64) -> Result<()> {
         assert_not_locked!(self.config.locked);
         assert_not_expired!(expiration);
         assert_non_zero!([amount]);
@@ -73,12 +67,13 @@ impl<'info> Swap<'info> {
             self.vault_y.amount,
             self.vault_x.amount,
             self.config.fee,
-            None
-        ).map_err(AmmError::from)?;
+            None,
+        )
+        .map_err(AmmError::from)?;
 
         let p = match is_x {
             true => LiquidityPair::X,
-            false => LiquidityPair::Y
+            false => LiquidityPair::Y,
         };
 
         let res = curve.swap(p, amount, min).map_err(AmmError::from)?;
@@ -89,62 +84,57 @@ impl<'info> Swap<'info> {
         Ok(())
     }
 
-    pub fn deposit_token(
-        &mut self,
-        is_x: bool,
-        amount: u64
-    ) -> Result<()> {
+    pub fn deposit_token(&mut self, is_x: bool, amount: u64) -> Result<()> {
         let (from, to) = match is_x {
-            true => (self.user_x.to_account_info(), self.vault_x.to_account_info()),
-            false => (self.user_y.to_account_info(), self.vault_y.to_account_info())
+            true => (
+                self.user_x.to_account_info(),
+                self.vault_x.to_account_info(),
+            ),
+            false => (
+                self.user_y.to_account_info(),
+                self.vault_y.to_account_info(),
+            ),
         };
 
         let accounts = Transfer {
             from,
             to,
-            authority: self.user.to_account_info()
+            authority: self.user.to_account_info(),
         };
 
-        let ctx = CpiContext::new(
-            self.token_program.to_account_info(),
-            accounts
-        );
+        let ctx = CpiContext::new(self.token_program.to_account_info(), accounts);
 
         transfer(ctx, amount)
     }
 
-    pub fn withdraw_token(
-        &mut self,
-        is_x: bool,
-        amount: u64
-    ) -> Result<()> {
+    pub fn withdraw_token(&mut self, is_x: bool, amount: u64) -> Result<()> {
         let (from, to) = match is_x {
-            true => (self.vault_y.to_account_info(), self.user_y.to_account_info()),
-            false => (self.vault_x.to_account_info(), self.user_x.to_account_info())
+            true => (
+                self.vault_y.to_account_info(),
+                self.user_y.to_account_info(),
+            ),
+            false => (
+                self.vault_x.to_account_info(),
+                self.user_x.to_account_info(),
+            ),
         };
 
         let accounts = Transfer {
             from,
             to,
-            authority: self.auth.to_account_info()
+            authority: self.auth.to_account_info(),
         };
 
-        let seeds = &[
-            &b"auth"[..],
-            &[self.config.auth_bump],
-        ];
+        let seeds = &[&b"auth"[..], &[self.config.auth_bump]];
 
         let signer_seeds = &[&seeds[..]];
 
         let ctx = CpiContext::new_with_signer(
             self.token_program.to_account_info(),
             accounts,
-            signer_seeds
+            signer_seeds,
         );
 
         transfer(ctx, amount)
     }
 }
-
-
-

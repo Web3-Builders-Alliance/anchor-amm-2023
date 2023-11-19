@@ -1,6 +1,5 @@
-use anchor_lang::{error_code, error::Error};
+use anchor_lang::error_code;
 use constant_product_curve::CurveError;
-use solana_program::program_error::ProgramError;
 
 #[error_code]
 pub enum AmmError {

@@ -16,10 +16,10 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = { git = "https://github.com/coral-xyz/anchor.git", features = ["init-if-needed"] }
-anchor-spl = { git = "https://github.com/coral-xyz/anchor.git" }
+anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
+anchor-spl = "0.29.0"
 getrandom = { version = "0.2.9", features = ["custom"] }
-solana-program = "=1.14.17"
+##solana-program = "=1.14.17"
 winnow="=0.4.1"
 toml_datetime="=0.6.1"
 constant-product-curve = { git = "https://github.com/deanmlittle/constant-product-curve.git" }
